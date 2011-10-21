@@ -5,6 +5,7 @@ Usage:
 Set the socks_proxy os environment variable.
 Import it before anything else that will be using sockets.
 If the environment variable isn't set, then no proxying will occur
+socks_proxy="<DESTPORT1,DESTPORT2,...,DESTPORTN:>[username[:password]@]<PROXYHOST:><PROXYPORT>"
 
 
 Caveats:
@@ -14,7 +15,4 @@ user/pass auth has not been tested
 if socks_proxy env variable is set, all socket connections on that port will use it
 
 
-Todo:
-Add support for multiple ports/proxies
-socks_proxy="<DESTPORT:>[username[:password]@]<PROXYHOST:><PROXYPORT> socks_proxy=<DESTPORT:>[username[:password]@]<PROXYHOST:><PROXYPORT> ..."
-socks_proxy="<DESTPORT1,DESTPORT2,...,DESTPORTN:>[username[:password]@]<PROXYHOST:><PROXYPORT>"
+

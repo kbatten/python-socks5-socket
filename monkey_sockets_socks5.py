@@ -8,6 +8,7 @@ import struct
 
 
 def _split_proxy(uri, port):
+    # <DESTPORT1,DESTPORT2,...,DESTPORTN:>[username[:password]@]<PROXYHOST:><PROXYPORT>
     split_auth = uri.split("@")
     if uri == "":
         split_uri = []
@@ -15,17 +16,68 @@ def _split_proxy(uri, port):
         split_first = split_auth[0].split(":")
         split_second = split_auth[1].split(":")
         if len(split_first) == 3:
-            split_uri = [int(split_first[0])] + split_first[1:] + [split_second[0], int(split_second[1])]
+            split_uri = split_first + [split_second[0], int(split_second[1])]
         else:
-            split_uri = [int(split_first[0])] + split_first[1:] + [""] + [split_second[0], int(split_second[1])]
+            split_uri = split_first + [""] + [split_second[0], int(split_second[1])]
     else:
         split_small = split_auth[0].split(":")
-        split_uri = [int(split_small[0])] + [""] + [""] + [split_small[1]] + [int(split_small[2])]
+        if len(split_small) != 3:
+            split_uri = []
+        else:
+            split_uri = [split_small[0],"",""] + [split_small[1]] + [int(split_small[2])]
     if len(split_uri) != 5:
         split_uri = None
-    elif split_uri[0] != port:
+    elif port not in [int(p) for p in split_uri[0].split(",")]:
         split_uri = None
+    else:
+        # we only care about one port
+        split_uri[0] = port
     return split_uri
+
+def _test_split_proxy():
+    # multi-port
+    # user exists
+    # password exists (force user exists)
+    # port in port list
+    # port not in port list
+
+    # positive tests
+    print "positive"
+    ports = [
+        ["80:",[80]],
+        ["80,90:",[80,90]],
+        ["80,90,100:",[80,90,100]],
+        ]
+    auths = [
+        ["user:pass@",["user","pass"]],
+        ["user@",["user",""]],
+        ["",["",""]],
+        ]
+    hosts = [
+        ["host:100",["host",100]],
+        ]
+
+    for port in ports:
+        for expected_port in port[1]:
+            for auth in auths:
+                for host in hosts:
+                    teststring = str(port[0]) + auth[0] + host[0]
+                    testlist = [expected_port] + auth[1] + host[1]
+                    print teststring,testlist,_split_proxy(teststring,expected_port)
+                    assert testlist == _split_proxy(teststring,expected_port)
+    print
+
+
+    # negative tests
+    print "negative"
+    print "80,90:host:100",100
+    assert None == _split_proxy("80,90:host:100",100)
+    print "80:host:100",100
+    assert None == _split_proxy("80:host:100",100)
+    print "80,90:100",80
+    assert None == _split_proxy("80,90:100",80)
+    print "80:100",80
+    assert None == _split_proxy("80:100",80)
 
 
 # CAVEATS:
@@ -35,7 +87,7 @@ def _split_proxy(uri, port):
 # if socks_proxy env variable is set, all socket connections on that port will use it
 class Socks5Socket(socket.socket):
     def connect(self, address):
-        # socks_proxy=<DESTPORT:>[username[:password]@]<PROXYHOST:><PROXYPORT>
+        # socks_proxy=<DESTPORT1,DESTPORT2,...,DESTPORTN:>[username[:password]@]<PROXYHOST:><PROXYPORT>
         socks_proxy = _split_proxy(os.getenv("socks_proxy",""), address[1])
 
         if not socks_proxy:
